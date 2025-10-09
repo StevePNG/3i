@@ -45,7 +45,15 @@ describe('Planning Home Screen', () => {
 
     await waitFor(element(by.text('Route planning')))
       .toBeVisible()
+      .withTimeout(10000);
+
+    const newStopInput = element(by.id('new-stop-input'));
+    await newStopInput.tap();
+    await newStopInput.replaceText('Test Drop-off');
+    await element(by.id('add-stop-button')).tap();
+
+    await waitFor(element(by.text('Test Drop-off')))
+      .toBeVisible()
       .withTimeout(5000);
-    await element(by.text('OK')).tap();
   });
 });

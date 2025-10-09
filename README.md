@@ -29,6 +29,10 @@ A monorepo for a React Native route planning experience built with Expo, Tamagui
 - `AppThemeProvider` handles Tamagui configuration and system dark-mode sync.
 - An example Tamagui-driven home screen is implemented in `apps/mobile/App.tsx`.
 
+## Screens
+- **Home**: Tamagui hero card that links into the planning flow.
+- **Planning**: Route summary, editable stop list, and action buttons (preview/share).
+
 ## Testing
 - Type checking and Detox workflows are documented in `docs/testing.md`.
 - Run the iOS Detox suite after building the Expo dev client:
