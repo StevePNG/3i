@@ -1,0 +1,7 @@
+node_modules/
+apps/mobile/node_modules/
+apps/mobile/.tamagui/
+apps/mobile/artifacts/
+.DS_Store
+.expo/
+.expo-shared/

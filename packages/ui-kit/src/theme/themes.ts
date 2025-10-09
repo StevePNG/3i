@@ -1,0 +1,40 @@
+export const themes = {
+  light: {
+    background: '#f8fafc',
+    backgroundHover: '#f1f5f9',
+    backgroundPress: '#e2e8f0',
+    surface: '#ffffff',
+    surfaceHover: '#f8fafc',
+    surfacePress: '#e2e8f0',
+    borderColor: '#cbd5f5',
+    color: '#0f172a',
+    colorMuted: '#64748b',
+    colorInverse: '#f9fafb',
+    primary: '#2563eb',
+    primaryHover: '#1d4ed8',
+    primaryPress: '#1e40af',
+    accent: '#22d3ee',
+    success: '#22c55e',
+    warning: '#f59e0b',
+    danger: '#ef4444'
+  },
+  dark: {
+    background: '#0f172a',
+    backgroundHover: '#111c2f',
+    backgroundPress: '#15223b',
+    surface: '#111827',
+    surfaceHover: '#1f2937',
+    surfacePress: '#233044',
+    borderColor: '#1e293b',
+    color: '#f8fafc',
+    colorMuted: '#94a3b8',
+    colorInverse: '#0f172a',
+    primary: '#3b82f6',
+    primaryHover: '#2563eb',
+    primaryPress: '#1d4ed8',
+    accent: '#22d3ee',
+    success: '#4ade80',
+    warning: '#fcd34d',
+    danger: '#f87171'
+  }
+};

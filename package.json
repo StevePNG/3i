@@ -1,0 +1,19 @@
+{
+  "name": "3i",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "pnpm --filter mobile start",
+    "android": "pnpm --filter mobile android",
+    "ios": "pnpm --filter mobile ios",
+    "web": "pnpm --filter mobile web",
+    "lint": "pnpm --filter @3i/ui-kit lint"
+  },
+  "packageManager": "pnpm@10.15.0",
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.0",
+      "react-dom": "19.2.0"
+    }
+  }
+}

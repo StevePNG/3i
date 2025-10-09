@@ -1,0 +1,18 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["react", "react-native", "tamagui"],
+    "baseUrl": ".",
+    "paths": {
+      "tamagui": ["./node_modules/tamagui/types"],
+      "@3i/ui-kit": ["packages/ui-kit/src"],
+      "@3i/ui-kit/*": ["packages/ui-kit/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build"]
+}
