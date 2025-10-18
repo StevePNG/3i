@@ -12,6 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "entryPoint": "./index.ts",
     "plugins": [
       "expo-dev-client",
       [

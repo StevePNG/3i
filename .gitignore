@@ -5,3 +5,5 @@ apps/mobile/artifacts/
 .DS_Store
 .expo/
 .expo-shared/
+.env
+.env.*

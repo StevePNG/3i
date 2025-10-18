@@ -3,6 +3,8 @@ import { Button as TamaguiButton, styled } from 'tamagui';
 export const Button = styled(TamaguiButton, {
   name: 'AppButton',
   borderRadius: '$md',
+  fontFamily: '$body',
+  fontSize: '$4',
   minHeight: 48,
   paddingHorizontal: '$4',
   gap: '$2',
@@ -42,15 +44,18 @@ export const Button = styled(TamaguiButton, {
     size: {
       sm: {
         minHeight: 40,
-        paddingHorizontal: '$3'
+        paddingHorizontal: '$3',
+        fontSize: '$3'
       },
       md: {
         minHeight: 48,
-        paddingHorizontal: '$4'
+        paddingHorizontal: '$4',
+        fontSize: '$4'
       },
       lg: {
         minHeight: 56,
-        paddingHorizontal: '$5'
+        paddingHorizontal: '$5',
+        fontSize: '$5'
       }
     },
     destructive: {

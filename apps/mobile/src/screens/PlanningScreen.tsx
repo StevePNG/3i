@@ -204,7 +204,7 @@ const PlanningScreen = () => {
               />
               <Button
                 variant="secondary"
-                size="sm"
+                size="$sm"
                 onPress={handleAddStop}
                 testID="add-stop-button"
               >
@@ -313,7 +313,7 @@ const StopRow = ({ index, stop, leg, onToggleStatus, onRemove }: StopRowProps) =
       <Body tone="muted" flex={1}>
         {stop.status === 'completed' ? 'Completed' : 'Tap to mark completed'}
       </Body>
-      <Button size="sm" variant="outlined" onPress={() => onRemove(stop.id)}>
+      <Button size="$sm" variant="outlined" onPress={() => onRemove(stop.id)}>
         Remove
       </Button>
     </XStack>
@@ -331,7 +331,7 @@ const SuggestedStops = ({ onSelect }: SuggestedStopsProps) => (
       {SUGGESTED_LOCATIONS.map((suggestion) => (
         <Button
           key={suggestion.id}
-          size="sm"
+          size="$sm"
           variant="ghost"
           onPress={() => onSelect(suggestion.label)}
         >

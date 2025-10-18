@@ -10,6 +10,9 @@ export const tokens = createTokens({
     surfaceStrongDark: '#1f2937',
     borderLight: '#cbd5f5',
     borderDark: '#1e293b',
+    borderColor: '#cbd5f5',
+    borderColorHover: '#94a3b8',
+    borderColorPress: '#64748b',
     overlay: 'rgba(15, 23, 42, 0.6)',
     primary: '#2563eb',
     primaryActive: '#1d4ed8',
@@ -50,7 +53,32 @@ export const tokens = createTokens({
     '9': 48,
     '10': 64,
     '11': 80,
-    '12': 96
+    '12': 96,
+    // Named sizes for use in components
+    xs: 12,
+    sm: 14,
+    md: 16,
+    lg: 24,
+    xl: 32
+  },
+  fontSize: {
+    true: 16,
+    '0': 0,
+    '1': 12,
+    '2': 14,
+    '3': 16,
+    '4': 18,
+    '5': 20,
+    '6': 24,
+    '7': 28,
+    '8': 32,
+    '9': 36,
+    '10': 48,
+    xs: 12,
+    sm: 14,
+    md: 16,
+    lg: 24,
+    xl: 32
   },
   radius: {
     true: 12,
