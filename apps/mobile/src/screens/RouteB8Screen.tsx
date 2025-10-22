@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
-import { ActivityIndicator, Animated, Easing, type LayoutRectangle } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Pressable, type LayoutRectangle } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Body, Button, Card } from '@3i/ui-kit';
+import { Body, Button, Card, TabList } from '@3i/ui-kit';
 import {
   Accessibility,
   AlertTriangle,
@@ -17,14 +17,14 @@ import {
   RefreshCw,
   Umbrella
 } from '@tamagui/lucide-icons';
-import { ScrollView, SizableText, Separator, Stack, XStack, YStack } from 'tamagui';
+import { ScrollView, SizableText, Separator, Stack, XStack, YStack, useTheme, getVariableValue } from 'tamagui';
 import { smoothBusProgress, type BusProgressState } from './RouteB8/busProgress';
 import type { AppNavigationProp } from '../navigation/AppNavigator';
 
 const API_BASE_URL = 'https://rt.data.gov.hk/v1/transport/citybus-nwfb';
 const COMPANY_CODE = 'CTB';
 const ROUTE_NUMBER = 'B8';
-const USE_MOCK_DATA = false && !!process.env.EXPO_PUBLIC_ROUTE_B8_USE_MOCK;
+const USE_MOCK_DATA = true && !!process.env.EXPO_PUBLIC_ROUTE_B8_USE_MOCK;
 
 const MOCK_DIRECTION_META: Record<RouteDirection, DirectionMeta> = {
   outbound: { origin: 'Downtown Terminal', destination: 'Airport Terminal' },
@@ -127,6 +127,7 @@ type EtaDetail = {
   eta: string | null;
   etaSeq: number;
   remark?: string | null;
+  destination?: string | null;
 };
 
 type StopWithEta = {
@@ -179,11 +180,13 @@ type BusMarker = {
   progress: number;
 };
 
-const STOP_ICON_SIZE = 32;
-const STOP_VERTICAL_GAP = 32;
+const STOP_ICON_SIZE = 45;
+const STOP_VERTICAL_GAP = 24;
 const BUS_MARKER_SIZE = 32;
 const BUS_MARKER_PULSE_SIZE = BUS_MARKER_SIZE + 12;
 const BUS_ASSIGN_THRESHOLD = 0.5;
+const TIMELINE_LINE_X = 20;
+const TIMELINE_CONTENT_OFFSET = TIMELINE_LINE_X + STOP_ICON_SIZE / 2 + 18;
 
 const formatTime = (date: Date) => {
   const hours = date.getHours().toString().padStart(2, '0');
@@ -325,7 +328,8 @@ const RouteB8Screen = () => {
             const etaDetails: EtaDetail[] = relevantEtas.map((entry) => ({
               eta: entry.eta,
               etaSeq: entry.eta_seq,
-              remark: entry.rmk_en ?? null
+              remark: entry.rmk_en ?? null,
+              destination: entry.dest_en ?? null
             }));
 
             debugEtaSummary.push({
@@ -639,7 +643,8 @@ const RouteB8Screen = () => {
         nameTc: stop.nameTc,
         busCount: busesAtNextStop,
         primaryEtaLabel: primaryEtaDate ? formatTime(primaryEtaDate) : 'No live data',
-        primaryEtaDate
+        primaryEtaDate,
+        etas: stop.etas
       };
     });
   }, [stops, busInsights]);
@@ -674,7 +679,8 @@ const RouteB8Screen = () => {
 
   return (
     <ScrollView
-      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 48 }}
+      backgroundColor="$background"
+      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 64 }}
     >
       <YStack gap="$4">
         <XStack alignItems="center" justifyContent="space-between">
@@ -687,27 +693,46 @@ const RouteB8Screen = () => {
           />
         </XStack>
 
-        <HeaderCard
-          routeNumber={ROUTE_NUMBER}
-          metaLabel={
-            currentDirectionLabel
-              ? `${currentDirectionLabel.origin} → ${currentDirectionLabel.destination}`
-              : 'Live tracking'
-          }
-        />
+        <Card
+          padding="$4"
+          backgroundColor="$surface"
+          borderRadius={28}
+          borderWidth={1}
+          borderColor="$borderColor"
+          shadowColor="rgba(15, 23, 42, 0.06)"
+          shadowOpacity={1}
+          shadowRadius={14}
+          shadowOffset={{ width: 0, height: 8 }}
+          gap="$4"
+        >
+          <HeaderCard
+            routeNumber={ROUTE_NUMBER}
+            metaLabel={
+              currentDirectionLabel
+                ? `${currentDirectionLabel.origin} → ${currentDirectionLabel.destination}`
+                : 'Live tracking'
+            }
+          />
 
-        <IconTabList value={activeView} options={TOP_TAB_OPTIONS} onValueChange={setActiveView} />
+          <TabList
+            value={activeView}
+            options={TOP_TAB_OPTIONS}
+            onValueChange={setActiveView}
+            fit="fill"
+            mode="icon"
+          />
 
-        <RouteTimelineCard
-          direction={direction}
-          onDirectionChange={handleDirectionChange}
-          timelineStops={timelineStops}
-          busInsights={busInsights}
-          loading={loading}
-          error={error}
-          lastUpdated={lastUpdated}
-          onRefresh={handleRefresh}
-        />
+          <RouteTimelineCard
+            direction={direction}
+            onDirectionChange={handleDirectionChange}
+            timelineStops={timelineStops}
+            busInsights={busInsights}
+            loading={loading}
+            error={error}
+            lastUpdated={lastUpdated}
+            onRefresh={handleRefresh}
+          />
+        </Card>
 
         {selectedStop ? (
           <StopDetailsCard stop={selectedStop} busesHere={selectedStopBusCount} />
@@ -729,6 +754,7 @@ type TimelineStop = {
   busCount: number;
   primaryEtaLabel: string;
   primaryEtaDate: Date | null;
+  etas: EtaDetail[];
 };
 
 type IconButtonProps = {
@@ -741,9 +767,9 @@ type IconButtonProps = {
 
 const IconButton = ({ icon: Icon, label, onPress, disabled, tone = 'default' }: IconButtonProps) => {
   const backgroundColor = tone === 'inverse' ? 'rgba(255, 255, 255, 0.12)' : 'transparent';
-  const hoverBackground = tone === 'inverse' ? 'rgba(255, 255, 255, 0.18)' : '#f1f5f9';
-  const pressBackground = tone === 'inverse' ? 'rgba(255, 255, 255, 0.24)' : '#e2e8f0';
-  const iconColor = tone === 'inverse' ? '#f8fafc' : '#0f172a';
+  const hoverBackground = tone === 'inverse' ? 'rgba(255, 255, 255, 0.18)' : '$surfaceHover';
+  const pressBackground = tone === 'inverse' ? 'rgba(255, 255, 255, 0.24)' : '$surfacePress';
+  const iconColor = tone === 'inverse' ? '$colorInverse' : '$color';
 
   return (
     <Button
@@ -766,9 +792,9 @@ const IconButton = ({ icon: Icon, label, onPress, disabled, tone = 'default' }: 
 };
 
 const Badge = ({ label, tone = 'default' }: { label: string; tone?: 'default' | 'inverse' }) => {
-  const backgroundColor = tone === 'inverse' ? 'rgba(255, 255, 255, 0.16)' : '#eceef2';
-  const textColor = tone === 'inverse' ? '#f8fafc' : '#030213';
-  const minHeight = tone === 'inverse' ? 24 : 24;
+  const backgroundColor = tone === 'inverse' ? 'rgba(255, 255, 255, 0.16)' : '$surfaceHover';
+  const textColor = tone === 'inverse' ? '$colorInverse' : '$color';
+  const minHeight = 24;
 
   return (
     <XStack
@@ -788,83 +814,36 @@ const Badge = ({ label, tone = 'default' }: { label: string; tone?: 'default' | 
 };
 
 const HeaderCard = ({ routeNumber, metaLabel }: { routeNumber: string; metaLabel: string }) => (
-  <Card
-    backgroundColor="#030213"
-    borderColor="#030213"
-    padding="$4"
-    gap="$2"
-    shadowColor="transparent"
-    shadowOpacity={0}
-  >
-    <XStack alignItems="center" justifyContent="space-between" gap="$3">
-      <XStack alignItems="center" gap="$3" flex={1}>
-        <Stack
-          width={48}
-          height={48}
-          borderRadius={12}
-          backgroundColor="#111827"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <BusFront size={24} color="#f8fafc" />
-        </Stack>
-        <YStack gap="$1" flex={1}>
-          <XStack alignItems="center" gap="$2" flexWrap="wrap">
-            <SizableText size="$sm" lineHeight={20} fontWeight="700" color="#f8fafc">
-              Route {routeNumber}
-            </SizableText>
-            <Badge tone="inverse" label="Express" />
-          </XStack>
-          <Body tone="inverse" size="$xs" lineHeight={16}>
-            {metaLabel}
-          </Body>
-        </YStack>
-      </XStack>
-      <IconButton icon={MoreHorizontal} label="More options" tone="inverse" disabled />
+  <XStack alignItems="center" justifyContent="space-between" gap="$3">
+    <XStack alignItems="center" gap="$3" flex={1}>
+      <Stack
+        width={52}
+        height={52}
+        borderRadius={16}
+        theme="dark"
+        backgroundColor="$background"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <BusFront size={26} color="$color" />
+      </Stack>
+      <YStack gap="$1" flex={1}>
+        <XStack alignItems="center" gap="$2" flexWrap="wrap">
+          <SizableText size="$md" lineHeight={24} fontWeight="700" color="$color">
+            Route {routeNumber}
+          </SizableText>
+          <Badge label="Express" />
+        </XStack>
+        <Body tone="muted" size="$xs" lineHeight={16}>
+          {metaLabel}
+        </Body>
+      </YStack>
     </XStack>
-  </Card>
-);
-
-type IconTabListProps<T extends string> = {
-  value: T;
-  options: Array<{ value: T; label: string; icon: IconComponent }>;
-  onValueChange: (value: T) => void;
-};
-
-const IconTabList = <T extends string>({ value, options, onValueChange }: IconTabListProps<T>) => (
-  <XStack
-    backgroundColor="#ececf0"
-    borderRadius={24}
-    padding="$2"
-    gap="$2"
-    alignItems="center"
-    justifyContent="center"
-  >
-    {options.map((option) => {
-      const selected = option.value === value;
-      const iconColor = selected ? '#0f172a' : '#64748b';
-      return (
-        <Button
-          key={option.value}
-          flex={1}
-          maxWidth={124}
-          size="$sm"
-          variant="ghost"
-          borderRadius={14}
-          backgroundColor={selected ? '#ffffff' : 'transparent'}
-          hoverStyle={{ backgroundColor: '#ffffff' }}
-          pressStyle={{ backgroundColor: '#e2e8f0' }}
-          accessibilityLabel={option.label}
-          onPress={() => onValueChange(option.value)}
-        >
-          <Stack alignItems="center" justifyContent="center">
-            <option.icon size={16} color={iconColor} />
-          </Stack>
-        </Button>
-      );
-    })}
+    <IconButton icon={MoreHorizontal} label="More options" disabled />
   </XStack>
 );
+
+// IconTabList component removed in favor of shared TabList from UI kit
 
 type RouteTimelineCardProps = {
   direction: RouteDirection;
@@ -908,9 +887,9 @@ const RouteTimelineCard = ({
     );
   } else if (error) {
     content = (
-      <YStack backgroundColor="#fef2f2" borderRadius="$md" padding="$4" gap="$3">
+      <YStack backgroundColor="$surfaceHover" borderRadius="$md" padding="$4" gap="$3">
         <XStack alignItems="center" gap="$2">
-          <AlertTriangle size={20} color="#b91c1c" />
+          <AlertTriangle size={20} color="$danger" />
           <Body>{error}</Body>
         </XStack>
         <Button variant="secondary" onPress={onRefresh} accessibilityLabel="Retry loading">
@@ -939,7 +918,9 @@ const RouteTimelineCard = ({
     <Card
       padding="$4"
       gap="$4"
-      borderColor="#dfe3ed"
+      backgroundColor="$background"
+      borderRadius={24}
+      borderColor="$borderColor"
       shadowColor="transparent"
       shadowOpacity={0}
     >
@@ -952,13 +933,17 @@ const RouteTimelineCard = ({
         </Body>
       </YStack>
 
-      <PillSelector
+      <TabList
         value={direction}
         options={[
           { value: 'inbound', label: 'Inbound' },
           { value: 'outbound', label: 'Outbound' }
         ]}
         onValueChange={onDirectionChange}
+        size="sm"
+        fit="fill"
+        mode="text"
+        deferChange
       />
 
       <XStack alignItems="center" justifyContent="space-between">
@@ -968,53 +953,12 @@ const RouteTimelineCard = ({
         <Badge label={busLabel} />
       </XStack>
 
-      <Separator backgroundColor="#e2e8f0" />
+      <Separator backgroundColor="$borderColor" />
 
       {content}
     </Card>
   );
 };
-
-type PillOption<T extends string> = { value: T; label: string };
-
-type PillSelectorProps<T extends string> = {
-  value: T;
-  options: Array<PillOption<T>>;
-  onValueChange: (value: T) => void;
-};
-
-const PillSelector = <T extends string>({ value, options, onValueChange }: PillSelectorProps<T>) => (
-  <XStack
-    backgroundColor="#f1f5f9"
-    borderRadius={999}
-    paddingHorizontal="$1.5"
-    paddingVertical="$1"
-    gap="$1"
-    alignItems="center"
-  >
-    {options.map((option) => {
-      const selected = option.value === value;
-      return (
-        <Button
-          key={option.value}
-          flex={1}
-          size="$sm"
-          variant="ghost"
-          borderRadius={20}
-          backgroundColor={selected ? '#ffffff' : 'transparent'}
-          color={selected ? '#0f172a' : '#475569'}
-          hoverStyle={{ backgroundColor: '#ffffff' }}
-          pressStyle={{ backgroundColor: '#e2e8f0' }}
-          onPress={() => onValueChange(option.value)}
-        >
-          <SizableText fontWeight="600" size="$xs" lineHeight={18}>
-            {option.label}
-          </SizableText>
-        </Button>
-      );
-    })}
-  </XStack>
-);
 
 type TimelineProps = {
   stops: TimelineStop[];
@@ -1022,12 +966,71 @@ type TimelineProps = {
   busMarkers: BusMarker[];
 };
 
+type StopExpandedDetails = {
+  arrivals: Array<{
+    etaSeq: number;
+    etaLabel: string;
+    countdownLabel: string;
+    remark: string | null;
+    hasLiveEta: boolean;
+    destination: string | null;
+  }>;
+  generatedAt: Date;
+};
+
+const buildStopDetails = (stop: TimelineStop): StopExpandedDetails => {
+  const now = Date.now();
+
+  const arrivals = stop.etas
+    .map((entry) => {
+      if (!entry.eta) {
+        return {
+          etaSeq: entry.etaSeq,
+          etaLabel: 'No live ETA',
+          countdownLabel: entry.remark ? entry.remark : 'Awaiting update',
+          remark: entry.remark ?? null,
+          hasLiveEta: false,
+          destination: entry.destination ?? null,
+          sortKey: Number.POSITIVE_INFINITY
+        };
+      }
+
+      const etaDate = new Date(entry.eta);
+      const diffMinutes = Math.max(0, Math.round((etaDate.getTime() - now) / 60000));
+      const countdownLabel = diffMinutes === 0 ? 'Arriving' : `${diffMinutes} min`;
+
+      return {
+        etaSeq: entry.etaSeq,
+        etaLabel: formatTime(etaDate),
+        countdownLabel,
+        remark: entry.remark ?? null,
+        hasLiveEta: true,
+        destination: entry.destination ?? null,
+        sortKey: etaDate.getTime()
+      };
+    })
+    .sort((a, b) => {
+      if (a.sortKey === b.sortKey) {
+        return a.etaSeq - b.etaSeq;
+      }
+      return a.sortKey - b.sortKey;
+    })
+    .map(({ sortKey: _sortKey, ...rest }) => rest);
+
+  return {
+    arrivals,
+    generatedAt: new Date(now)
+  };
+};
+
 const Timeline = ({ stops, highlightSeq, busMarkers }: TimelineProps) => {
   const [stopCenters, setStopCenters] = useState<Record<string, number>>({});
+  const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
   const stopsSignature = useMemo(() => stops.map((stop) => stop.stopId).join('|'), [stops]);
 
   useEffect(() => {
     setStopCenters({});
+    setExpandedStopId(null);
   }, [stopsSignature]);
 
   const handleStopLayout = useCallback((stopId: string, layout: LayoutRectangle) => {
@@ -1040,9 +1043,20 @@ const Timeline = ({ stops, highlightSeq, busMarkers }: TimelineProps) => {
     });
   }, []);
 
+  const handleToggle = useCallback((stopId: string) => {
+    setExpandedStopId((current) => (current === stopId ? null : stopId));
+  }, []);
+
   return (
-    <Stack position="relative" paddingLeft="$5">
-    <Stack position="absolute" left={20} top={0} bottom={0} width={2} backgroundColor="#dbe0ea" />
+    <Stack position="relative" paddingLeft={TIMELINE_CONTENT_OFFSET}>
+      <Stack
+        position="absolute"
+        left={TIMELINE_LINE_X}
+        top={0}
+        bottom={0}
+        width={1}
+        backgroundColor="$borderColor"
+      />
       <BusMarkersOverlay markers={busMarkers} stops={stops} stopCenters={stopCenters} />
       <YStack>
         {stops.map((stop, index) => {
@@ -1065,6 +1079,9 @@ const Timeline = ({ stops, highlightSeq, busMarkers }: TimelineProps) => {
               busLabel={busLabel}
               isLast={index === stops.length - 1}
               onMeasure={handleStopLayout}
+              isExpanded={expandedStopId === stop.stopId}
+              onToggle={() => handleToggle(stop.stopId)}
+              details={buildStopDetails(stop)}
             />
           );
         })}
@@ -1079,49 +1096,132 @@ type StopTimelineItemProps = {
   busLabel: string | null;
   isLast: boolean;
   onMeasure: (stopId: string, layout: LayoutRectangle) => void;
+  isExpanded: boolean;
+  onToggle: () => void;
+  details: StopExpandedDetails;
 };
 
-const StopTimelineItem = ({ stop, status, busLabel, isLast, onMeasure }: StopTimelineItemProps) => {
-  const isActive = status === 'active';
+const StopTimelineItem = ({
+  stop,
+  status,
+  busLabel,
+  isLast,
+  onMeasure,
+  isExpanded,
+  onToggle,
+  details
+}: StopTimelineItemProps) => {
+  const isHighlighted = status === 'active';
+  const isSelected = isExpanded || isHighlighted;
 
-  const markerBackground = isActive ? '#030213' : '#f8fafc';
-  const markerBorder = isActive ? '#030213' : '#dbe0ea';
-  const markerIconColor = isActive ? '#f8fafc' : '#0f172a';
+  const markerBackground = isSelected ? '$primary' : '$surface';
+  const markerBorder = isSelected ? '$primary' : '$borderColor';
+  const markerIconColor = isSelected ? '$colorInverse' : '$color';
+
+  const trailingSpacing = isLast ? 0 : isExpanded ? STOP_VERTICAL_GAP / 2 : STOP_VERTICAL_GAP;
 
   return (
-    <XStack
-      alignItems="center"
-      gap="$4"
-      marginBottom={isLast ? 0 : STOP_VERTICAL_GAP}
-      paddingVertical={10}
-      onLayout={(event) => onMeasure(stop.stopId, event.nativeEvent.layout)}
-    >
-      <Stack width={64} alignItems="flex-start" justifyContent="center" paddingLeft={28}>
-        <Stack
-          width={STOP_ICON_SIZE}
-          height={STOP_ICON_SIZE}
-          borderRadius={STOP_ICON_SIZE / 2}
-          backgroundColor={markerBackground}
-          borderWidth={2}
-          borderColor={markerBorder}
-          alignItems="center"
-          justifyContent="center"
+    <YStack marginBottom={trailingSpacing}>
+      <Pressable onPress={onToggle}>
+        {({ pressed }) => (
+          <XStack
+            alignItems="center"
+            gap="$3"
+            paddingVertical={isExpanded ? 4 : 14}
+            paddingRight="$3"
+            borderRadius={24}
+            // backgroundColor={pressed ? '$surfaceHover' : '$surface'}
+            // borderWidth={isSelected ? 2 : 1}
+            borderColor={isSelected ? '$primary' : '$borderColor'}
+            onLayout={(event) => onMeasure(stop.stopId, event.nativeEvent.layout)}
+          >
+            <Stack width={TIMELINE_CONTENT_OFFSET} alignItems="flex-start" justifyContent="center">
+              <Stack
+                width={STOP_ICON_SIZE}
+                height={STOP_ICON_SIZE}
+                borderRadius={STOP_ICON_SIZE / 2}
+                backgroundColor={markerBackground}
+                borderWidth={isSelected ? 0 : 1.5}
+                borderColor={markerBorder}
+                marginLeft={TIMELINE_LINE_X - STOP_ICON_SIZE / 2}
+                alignItems="center"
+                justifyContent="center"
+              >
+                <MapPin size={22} color={markerIconColor} />
+              </Stack>
+            </Stack>
+
+            <YStack gap="$0.5" flex={1}>
+              <SizableText size="$sm" lineHeight={21} fontWeight="600" color="$color">
+                {stop.nameEn}
+              </SizableText>
+              <Body tone="muted" size="$xs" lineHeight={18}>
+                {stop.primaryEtaLabel}
+              </Body>
+            </YStack>
+
+            <XStack alignItems="center" gap="$2">
+              {busLabel ? <Badge label={busLabel} /> : null}
+            </XStack>
+          </XStack>
+        )}
+      </Pressable>
+
+      {isExpanded ? (
+        <YStack
+          marginLeft={20}
+          borderLeftColor={'$borderColor'}
+          borderLeftWidth={1}
+          marginTop={-4}
+          paddingLeft={12}
+          paddingTop={0}
+          paddingBottom={0}
+          gap={2}
         >
-          <MapPin size={16} color={markerIconColor} />
-        </Stack>
-      </Stack>
-
-      <YStack gap="$1" flex={1}>
-        <SizableText size="$sm" lineHeight={20} fontWeight="600" color="#0f172a">
-          {stop.nameEn}
-        </SizableText>
-        <Body tone="muted" size="$xs" lineHeight={18}>
-          {stop.primaryEtaLabel}
-        </Body>
-      </YStack>
-
-      {busLabel ? <Badge label={busLabel} /> : null}
-    </XStack>
+          <SizableText size="$xs" fontWeight="600" color="$colorMuted">
+            Arriving buses
+          </SizableText>
+          {details.arrivals.length ? (
+            <YStack gap={"$2"}>
+              {details.arrivals.map((arrival, index) => (
+                <XStack
+                  key={`${stop.stopId}-arrival-${arrival.etaSeq}`}
+                  alignItems="center"
+                  justifyContent="space-between"
+                  height={14}
+                  marginTop={index === 0 ? 0 : 0}
+                >
+                  <XStack gap="$1" alignItems="center">
+                    <Stack
+                      width={24}
+                      height={16}
+                      borderRadius={8}
+                      backgroundColor="$primary"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <SizableText size="$xs" lineHeight={14} fontWeight="600" color="$colorInverse">
+                        {ROUTE_NUMBER}
+                      </SizableText>
+                    </Stack>
+                    <SizableText size="$xs" lineHeight={12} fontWeight="500" color="$colorMuted">
+                      {arrival.destination ? `To ${arrival.destination}` : `Bus ${arrival.etaSeq}`}
+                    </SizableText>
+                  </XStack>
+                  <SizableText size="$xs" fontWeight="700" color={arrival.hasLiveEta ? '$success' : '$colorMuted'}>
+                    {arrival.countdownLabel}
+                  </SizableText>
+                </XStack>
+              ))}
+            </YStack>
+          ) : (
+            <Body tone="muted" size="$xs" lineHeight={18}>
+              No live buses are currently reported for this stop. Please check again shortly.
+            </Body>
+          )}
+        </YStack>
+      ) : null}
+    </YStack>
   );
 };
 
@@ -1195,7 +1295,7 @@ const BusMarkersOverlay = ({
   placements.sort((a, b) => a.top - b.top);
 
   // No clustering - show each bus at its exact calculated position
-  const baseLeft = 20 - BUS_MARKER_SIZE / 2;
+  const baseLeft = TIMELINE_LINE_X - BUS_MARKER_SIZE / 2;
 
   return (
     <Stack
@@ -1223,16 +1323,13 @@ const BusMarkersOverlay = ({
             width={BUS_MARKER_SIZE}
             height={BUS_MARKER_SIZE}
             borderRadius={BUS_MARKER_SIZE / 2}
-            backgroundColor="#030213"
+            backgroundColor="$primary"
             alignItems="center"
             justifyContent="center"
             borderWidth={2}
-            borderColor="#f1f5f9"
-            shadowColor="rgba(15, 23, 42, 0.18)"
-            shadowOpacity={1}
-            shadowRadius={10}
+            borderColor="$borderColor"
           >
-            <BusFront size={18} color="#f8fafc" />
+            <BusFront size={18} color="$colorInverse" />
           </Stack>
         </Stack>
       ))}
@@ -1241,6 +1338,8 @@ const BusMarkersOverlay = ({
 };
 
 const AnimatedPulseCircle = ({ size }: { size: number }) => {
+  const theme = useTheme();
+  const pulseBg = getVariableValue(theme.surfacePress) as string;
   const scale = useRef(new Animated.Value(0.75)).current;
   const opacity = useRef(new Animated.Value(0.35)).current;
 
@@ -1289,7 +1388,7 @@ const AnimatedPulseCircle = ({ size }: { size: number }) => {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: '#e2e8f0',
+        backgroundColor: pulseBg,
         transform: [{ scale }],
         opacity
       }}
@@ -1303,8 +1402,8 @@ type StopDetailsCardProps = {
 };
 
 const StopDetailsCard = ({ stop, busesHere }: StopDetailsCardProps) => (
-  <Card padding={0} gap={0} overflow="hidden" borderColor="#dfe3ed" shadowColor="transparent">
-    <YStack backgroundColor="#030213" padding="$4" gap="$3">
+  <Card padding={0} gap={0} overflow="hidden" borderColor="$borderColor" shadowColor="transparent">
+    <YStack theme="dark" backgroundColor="$background" padding="$4" gap="$3">
       <XStack alignItems="flex-start" justifyContent="space-between" gap="$3">
         <XStack gap="$3" flex={1}>
           <Stack
@@ -1315,15 +1414,15 @@ const StopDetailsCard = ({ stop, busesHere }: StopDetailsCardProps) => (
             alignItems="center"
             justifyContent="center"
           >
-            <MapPin size={20} color="#f8fafc" />
+            <MapPin size={20} color="$color" />
           </Stack>
           <YStack gap="$1" flex={1}>
             <Badge tone="inverse" label={`Stop #${stop.seq}`} />
-            <SizableText size="$md" lineHeight={24} fontWeight="600" color="#f8fafc">
+            <SizableText size="$md" lineHeight={24} fontWeight="600" color="$color">
               {stop.nameEn}
             </SizableText>
             <XStack gap="$2" alignItems="center">
-              <Clock size={14} color="#f8fafc" />
+              <Clock size={14} color="$color" />
               <Body tone="inverse" size="$xs" lineHeight={16}>
                 Scheduled: {stop.primaryEtaLabel}
               </Body>
@@ -1337,7 +1436,7 @@ const StopDetailsCard = ({ stop, busesHere }: StopDetailsCardProps) => (
       ) : null}
     </YStack>
     <YStack padding="$4" gap="$3">
-      <Separator backgroundColor="#e2e8f0" />
+      <Separator backgroundColor="$borderColor" />
       <SizableText size="$sm" lineHeight={20} fontWeight="600">
         Amenities
       </SizableText>
@@ -1356,13 +1455,13 @@ const AmenityChip = ({ icon: Icon, label }: { icon: IconComponent; label: string
     alignItems="center"
     paddingHorizontal="$3"
     paddingVertical="$1.5"
-    backgroundColor="rgba(236, 236, 240, 0.5)"
+    backgroundColor="$surfaceHover"
     borderRadius="$md"
     borderWidth={1}
-    borderColor="#e2e8f0"
+    borderColor="$borderColor"
   >
-    <Icon size={16} color="#0f172a" />
-    <SizableText size="$xs" lineHeight={16} fontWeight="600" color="#0f172a">
+    <Icon size={16} color="$color" />
+    <SizableText size="$xs" lineHeight={16} fontWeight="600" color="$color">
       {label}
     </SizableText>
   </XStack>
