@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Body, Button, Card, Title } from '@3i/ui-kit';
-import { ScrollView, YStack } from 'tamagui';
+import { ScrollView } from 'react-native';
+import { YStack, useTheme, getVariableValue } from 'tamagui';
 import { AppNavigationProp } from '../navigation/AppNavigator';
 
 const HomeScreen = () => {
@@ -15,14 +16,25 @@ const HomeScreen = () => {
     navigation.navigate('RouteB8');
   }, [navigation]);
 
+  const handleOpenQuickActionsDemo = useCallback(() => {
+    navigation.navigate('QuickActionsDemo');
+  }, [navigation]);
+
+  const theme = useTheme();
+  const backgroundColor = getVariableValue(theme.background) as string;
+
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1 }}
+      style={{ flex: 1, backgroundColor }}
+      testID="home-scroll"
+    >
       <YStack
         flex={1}
         padding="$5"
         gap="$4"
         backgroundColor="$background"
-        justifyContent="center"
+        justifyContent="flex-start"
       >
         <Card elevated interactive>
           <YStack gap="$3" testID="planning-card">
@@ -57,6 +69,22 @@ const HomeScreen = () => {
               onPress={handleViewB8}
             >
               View live ETAs
+            </Button>
+          </YStack>
+        </Card>
+        <Card elevated interactive>
+          <YStack gap="$3" testID="quick-actions-card">
+            <Title level={2}>Radial quick actions</Title>
+            <Body tone="muted">
+              Showcase the floating action menu pattern that blooms into a one-handed shortcut hub.
+            </Body>
+            <Button
+              variant="primary"
+              testID="quick-actions-cta"
+              accessibilityRole="button"
+              onPress={handleOpenQuickActionsDemo}
+            >
+              Open demo
             </Button>
           </YStack>
         </Card>
